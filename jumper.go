@@ -16,6 +16,7 @@ var (
 	enemyShipSprite *ebiten.Image
 	playerOne       Player
 	enemies         []Enemy
+	playerAttacks   []Attack
 	isPlayerAlive   bool
 )
 
@@ -48,16 +49,20 @@ func init() {
 	background = loadImage("assets/Space_Background.png")
 	spaceShip = loadImage("assets/spaceship.png")
 	enemyShipSprite = loadImage("assets/enemy_ship.png")
-	playerOne = Player{spaceShip, screenWidth / 2.0, screenHeight / 2.0, 4}
+	missile := loadImage("assets/missile.png")
+	playerOne = *NewPlayer(spaceShip, missile, screenWidth/2.0, screenHeight/2.0, 4)
 	isPlayerAlive = true
 
 	enemies = make([]Enemy, 0)
 	enemies = append(enemies, *NewEnemy(enemyShipSprite, 0, 0, 2))
+
+	playerAttacks = make([]Attack, 0)
 }
 
 func update(screen *ebiten.Image) error {
 	if isPlayerAlive {
 		playerOne.movePlayer(screenWidth, screenHeight)
+		playerAttacks = playerOne.fireMissile(playerAttacks)
 	}
 
 	r := rand.IntN(200)
@@ -67,9 +72,16 @@ func update(screen *ebiten.Image) error {
 		enemies = append(enemies, e)
 	}
 
-	i := 0
 	for j, _ := range enemies {
 		enemies[j].move()
+	}
+
+	for k, _ := range playerAttacks {
+		playerAttacks[k].move()
+	}
+
+	i := 0
+	for j, _ := range enemies {
 		if enemies[j].inBounds(screenWidth, screenHeight) {
 			enemies[i] = enemies[j]
 			i++
@@ -82,6 +94,36 @@ func update(screen *ebiten.Image) error {
 	}
 	enemies = enemies[:i]
 
+	i = 0
+	for j, _ := range playerAttacks {
+		if playerAttacks[j].inBounds(screenWidth, screenHeight) {
+			playerAttacks[i] = playerAttacks[j]
+			i++
+		}
+	}
+	playerAttacks = playerAttacks[:i]
+
+	i = 0
+	for j, _ := range playerAttacks {
+		attackHit := false
+		k := 0
+		for l, _ := range enemies {
+			if !playerAttacks[j].intersects(enemies[l]) {
+				enemies[k] = enemies[l]
+				k++
+			} else {
+				attackHit = true
+			}
+		}
+		enemies = enemies[:k]
+
+		if !attackHit {
+			playerAttacks[i] = playerAttacks[j]
+			i++
+		}
+	}
+	playerAttacks = playerAttacks[:i]
+
 	if ebiten.IsDrawingSkipped() {
 		return nil
 	}
@@ -89,11 +131,15 @@ func update(screen *ebiten.Image) error {
 	draw(screen, background, 0, 0)
 
 	if isPlayerAlive {
-		draw(screen, playerOne.image, playerOne.xPos, playerOne.yPos)
+		draw(screen, playerOne.playerImage, playerOne.xPos, playerOne.yPos)
 	}
 
 	for _, e := range enemies {
 		draw(screen, e.image, e.xPos, e.yPos)
+	}
+
+	for _, a := range playerAttacks {
+		draw(screen, a.image, a.xPos, a.yPos)
 	}
 
 	return nil

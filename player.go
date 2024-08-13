@@ -1,13 +1,48 @@
 package main
 
 import (
+	"log"
+
 	"github.com/hajimehoshi/ebiten"
 )
 
 type Player struct {
-	image      *ebiten.Image
-	xPos, yPos float64
-	speed      float64
+	playerImage  *ebiten.Image
+	missileImage *ebiten.Image
+	xPos, yPos   float64
+	speed        float64
+	cooldown     int
+}
+
+const (
+	cooldownTimerLength = 30
+)
+
+func NewPlayer(playerImage, missileImage *ebiten.Image, xPos, yPos, speed float64) *Player {
+	player := &Player{
+		playerImage, missileImage, xPos, yPos, speed, 0,
+	}
+
+	return player
+}
+
+func (p *Player) fireMissile(playerAttacks []Attack) []Attack {
+	if p.cooldown > 0 {
+		p.cooldown--
+	}
+
+	if p.cooldown == 0 && ebiten.IsKeyPressed(ebiten.KeyE) {
+		log.Println(float64(p.playerImage.Bounds().Dx()) / 2.0)
+		p.cooldown = cooldownTimerLength
+		playerAttacks = append(playerAttacks, *NewAttack(p.missileImage,
+			p.xPos+(float64(p.playerImage.Bounds().Dx())/2.0)+float64(p.missileImage.Bounds().Dx()),
+			p.yPos+float64(p.missileImage.Bounds().Dy()),
+			0,
+			-5,
+		))
+	}
+
+	return playerAttacks
 }
 
 func (p *Player) movePlayer(screenWidth float64, screenHeight float64) {
@@ -27,8 +62,8 @@ func (p *Player) movePlayer(screenWidth float64, screenHeight float64) {
 		p.xPos += p.speed
 	}
 
-	playerWidth := p.image.Bounds().Dx()
-	playerHeight := p.image.Bounds().Dy()
+	playerWidth := p.playerImage.Bounds().Dx()
+	playerHeight := p.playerImage.Bounds().Dy()
 
 	playerXBound := screenWidth - float64(playerWidth)
 	playerYBound := screenHeight - float64(playerHeight)
@@ -51,7 +86,7 @@ func (p *Player) movePlayer(screenWidth float64, screenHeight float64) {
 }
 
 func (p *Player) intersects(e Enemy) bool {
-	playerRect := p.image.Bounds()
+	playerRect := p.playerImage.Bounds()
 	enemyRect := e.image.Bounds()
 
 	playerRect.Min.X += int(p.xPos)
