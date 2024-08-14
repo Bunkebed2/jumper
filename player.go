@@ -3,8 +3,9 @@ package main
 import (
 	"log"
 
+	"github.com/bunke/jumper/enemy"
 	"github.com/bunke/jumper/hitbox"
-	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 type Player struct {
@@ -88,6 +89,6 @@ func (p *Player) movePlayer(screenWidth float64, screenHeight float64) {
 	}
 }
 
-func (p *Player) collision(e Enemy) bool {
-	return p.hitbox.Intersects(e.hitbox)
+func (p *Player) collision(e enemy.Enemy) bool {
+	return p.hitbox.Intersects(e.Hitbox)
 }
