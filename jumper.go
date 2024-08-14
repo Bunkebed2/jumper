@@ -1,11 +1,16 @@
 package main
 
 import (
+	"bytes"
+	"fmt"
+	"image/color"
 	"log"
 	"math/rand/v2"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/examples/resources/fonts"
+	"github.com/hajimehoshi/ebiten/v2/text/v2"
 )
 
 // Create our empty vars
@@ -17,6 +22,7 @@ var (
 	enemies         []Enemy
 	playerAttacks   []Attack
 	isPlayerAlive   bool
+	mplusFaceSource *text.GoTextFaceSource
 )
 
 const (
@@ -43,6 +49,14 @@ func draw(screen *ebiten.Image, image *ebiten.Image, xPos, yPos float64) {
 }
 
 func init() {
+	// Loading the font face source with the data from the font
+	ff, err := text.NewGoTextFaceSource(bytes.NewReader(fonts.MPlus1pRegular_ttf))
+	if err != nil {
+		log.Fatal("error loading font", err)
+	}
+
+	mplusFaceSource = ff
+
 	background = loadImage("assets/spacebackground.png")
 	spaceShip = loadImage("assets/spaceship.png")
 	enemyShipSprite = loadImage("assets/enemyship.png")
@@ -110,6 +124,7 @@ func (g *Game) Update() error {
 				k++
 			} else {
 				attackHit = true
+				g.score++
 			}
 		}
 		enemies = enemies[:k]
@@ -122,6 +137,13 @@ func (g *Game) Update() error {
 	playerAttacks = playerAttacks[:i]
 
 	return nil
+}
+
+func (g *Game) DrawHUD(screen *ebiten.Image) {
+	op := &text.DrawOptions{}
+	op.GeoM.Translate(10, 10)
+	op.ColorScale.ScaleWithColor(color.White)
+	text.Draw(screen, fmt.Sprintf("Score: %d", g.score), &text.GoTextFace{Source: mplusFaceSource, Size: 24}, op)
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
@@ -138,6 +160,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	for _, a := range playerAttacks {
 		draw(screen, a.image, a.hitbox.XPos, a.hitbox.YPos)
 	}
+
+	g.DrawHUD(screen)
 }
 
 func (g *Game) Layout(ow, oh int) (int, int) {
