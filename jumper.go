@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"image/color"
 	"log"
-	"math/rand/v2"
 
+	"github.com/bunke/jumper/enemy"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/fonts"
@@ -19,10 +19,11 @@ var (
 	spaceShip       *ebiten.Image
 	enemyShipSprite *ebiten.Image
 	playerOne       Player
-	enemies         []Enemy
+	enemies         []enemy.Enemy
 	playerAttacks   []Attack
 	isPlayerAlive   bool
 	mplusFaceSource *text.GoTextFaceSource
+	eg              *enemy.EnemyGenerator
 )
 
 const (
@@ -64,8 +65,13 @@ func init() {
 	playerOne = *NewPlayer(spaceShip, missile, screenWidth/2.0, screenHeight/2.0, 6)
 	isPlayerAlive = true
 
-	enemies = make([]Enemy, 0)
-	enemies = append(enemies, *NewEnemy(enemyShipSprite, 0, 0, 2))
+	e1 := *enemy.NewEnemy(enemyShipSprite, 0, 0, 2)
+	e2 := *enemy.NewEnemy(loadImage("assets/enemyFighter.png"), 0, 0, 3)
+
+	enemies = make([]enemy.Enemy, 0)
+	enemies = append(enemies, e1)
+
+	eg = enemy.NewEnemyGenerator(e1, e2, e1)
 
 	playerAttacks = make([]Attack, 0)
 }
@@ -76,15 +82,10 @@ func (g *Game) Update() error {
 		playerAttacks = playerOne.fireMissile(playerAttacks)
 	}
 
-	r := rand.IntN(200)
-	if r == 10 {
-		e := *NewEnemy(enemyShipSprite, 0, 0, 2)
-		e.hitbox.XPos = float64(rand.IntN(screenWidth - e.Dx()))
-		enemies = append(enemies, e)
-	}
+	enemies = append(enemies, eg.GenerateEnemies(screenWidth)...)
 
 	for j, _ := range enemies {
-		enemies[j].move()
+		enemies[j].Move()
 	}
 
 	for k, _ := range playerAttacks {
@@ -93,7 +94,7 @@ func (g *Game) Update() error {
 
 	i := 0
 	for j, _ := range enemies {
-		if enemies[j].inBounds(screenWidth, screenHeight) {
+		if enemies[j].InBounds(screenWidth, screenHeight) {
 			enemies[i] = enemies[j]
 			i++
 		}
@@ -154,7 +155,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}
 
 	for _, e := range enemies {
-		draw(screen, e.image, e.hitbox.XPos, e.hitbox.YPos)
+		draw(screen, e.Image, e.Hitbox.XPos, e.Hitbox.YPos)
 	}
 
 	for _, a := range playerAttacks {

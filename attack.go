@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/bunke/jumper/enemy"
 	"github.com/bunke/jumper/hitbox"
 	"github.com/hajimehoshi/ebiten/v2"
 )
@@ -45,6 +46,6 @@ func (a *Attack) Dy() int {
 	return a.image.Bounds().Dy()
 }
 
-func (a *Attack) intersects(e Enemy) bool {
-	return a.hitbox.Intersects(e.hitbox)
+func (a *Attack) intersects(e enemy.Enemy) bool {
+	return a.hitbox.Intersects(e.Hitbox)
 }

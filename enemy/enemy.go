@@ -1,4 +1,4 @@
-package main
+package enemy
 
 import (
 	"github.com/bunke/jumper/hitbox"
@@ -6,8 +6,8 @@ import (
 )
 
 type Enemy struct {
-	image  *ebiten.Image
-	hitbox hitbox.Hitbox
+	Image  *ebiten.Image
+	Hitbox hitbox.Hitbox
 	speed  float64
 }
 
@@ -21,15 +21,15 @@ func NewEnemy(image *ebiten.Image, xPos, yPos, speed float64) *Enemy {
 	return enemy
 }
 
-func (e *Enemy) move() {
-	e.hitbox.YPos += e.speed
+func (e *Enemy) Move() {
+	e.Hitbox.YPos += e.speed
 }
 
-func (e *Enemy) inBounds(xBound, yBound float64) bool {
+func (e *Enemy) InBounds(xBound, yBound float64) bool {
 	width := e.Dx()
-	height := e.image.Bounds().Dy()
+	height := e.Image.Bounds().Dy()
 
-	if e.hitbox.XPos < -float64(width) || e.hitbox.XPos > xBound || e.hitbox.YPos < -float64(height) || e.hitbox.YPos > yBound {
+	if e.Hitbox.XPos < -float64(width) || e.Hitbox.XPos > xBound || e.Hitbox.YPos < -float64(height) || e.Hitbox.YPos > yBound {
 		return false
 	}
 
@@ -37,9 +37,9 @@ func (e *Enemy) inBounds(xBound, yBound float64) bool {
 }
 
 func (e *Enemy) Dx() int {
-	return e.hitbox.Dx()
+	return e.Hitbox.Dx()
 }
 
 func (e *Enemy) Dy() int {
-	return e.hitbox.Dy()
+	return e.Hitbox.Dy()
 }
