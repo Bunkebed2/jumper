@@ -4,7 +4,7 @@ import (
 	"log"
 
 	"github.com/bunke/jumper/hitbox"
-	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 type Player struct {

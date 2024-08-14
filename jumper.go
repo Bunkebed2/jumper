@@ -4,13 +4,12 @@ import (
 	"log"
 	"math/rand/v2"
 
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 )
 
 // Create our empty vars
 var (
-	err             error
 	background      *ebiten.Image
 	spaceShip       *ebiten.Image
 	enemyShipSprite *ebiten.Image
@@ -21,11 +20,15 @@ var (
 )
 
 const (
-	screenWidth, screenHeight = 640, 480
+	screenWidth, screenHeight = 1280, 720
 )
 
+type Game struct {
+	score int
+}
+
 func loadImage(imgPath string) *ebiten.Image {
-	image, _, err := ebitenutil.NewImageFromFile(imgPath, ebiten.FilterDefault)
+	image, _, err := ebitenutil.NewImageFromFile(imgPath)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -39,18 +42,12 @@ func draw(screen *ebiten.Image, image *ebiten.Image, xPos, yPos float64) {
 	screen.DrawImage(image, op)
 }
 
-func remove(s []Enemy, i int) []Enemy {
-	s[i] = s[len(s)-1]
-	return s[:len(s)-1]
-}
-
-// Run this code once at startup
 func init() {
-	background = loadImage("assets/Space_Background.png")
+	background = loadImage("assets/spacebackground.png")
 	spaceShip = loadImage("assets/spaceship.png")
-	enemyShipSprite = loadImage("assets/enemy_ship.png")
+	enemyShipSprite = loadImage("assets/enemyship.png")
 	missile := loadImage("assets/missile.png")
-	playerOne = *NewPlayer(spaceShip, missile, screenWidth/2.0, screenHeight/2.0, 4)
+	playerOne = *NewPlayer(spaceShip, missile, screenWidth/2.0, screenHeight/2.0, 6)
 	isPlayerAlive = true
 
 	enemies = make([]Enemy, 0)
@@ -59,7 +56,7 @@ func init() {
 	playerAttacks = make([]Attack, 0)
 }
 
-func update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	if isPlayerAlive {
 		playerOne.movePlayer(screenWidth, screenHeight)
 		playerAttacks = playerOne.fireMissile(playerAttacks)
@@ -124,10 +121,10 @@ func update(screen *ebiten.Image) error {
 	}
 	playerAttacks = playerAttacks[:i]
 
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
+	return nil
+}
 
+func (g *Game) Draw(screen *ebiten.Image) {
 	draw(screen, background, 0, 0)
 
 	if isPlayerAlive {
@@ -141,12 +138,16 @@ func update(screen *ebiten.Image) error {
 	for _, a := range playerAttacks {
 		draw(screen, a.image, a.hitbox.XPos, a.hitbox.YPos)
 	}
+}
 
-	return nil
+func (g *Game) Layout(ow, oh int) (int, int) {
+	return ow, oh
 }
 
 func main() {
-	if err := ebiten.Run(update, screenWidth, screenHeight, 1, "JUMPER"); err != nil {
+	ebiten.SetWindowSize(screenWidth, screenHeight)
+	ebiten.SetWindowTitle("JUMPER")
+	if err := ebiten.RunGame(&Game{0}); err != nil {
 		log.Fatal(err)
 	}
 }
