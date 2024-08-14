@@ -68,7 +68,7 @@ func update(screen *ebiten.Image) error {
 	r := rand.IntN(200)
 	if r == 10 {
 		e := *NewEnemy(enemyShipSprite, 0, 0, 2)
-		e.xPos = float64(rand.IntN(screenWidth - e.Dx()))
+		e.hitbox.XPos = float64(rand.IntN(screenWidth - e.Dx()))
 		enemies = append(enemies, e)
 	}
 
@@ -87,7 +87,7 @@ func update(screen *ebiten.Image) error {
 			i++
 		}
 
-		if isPlayerAlive && playerOne.intersects(enemies[j]) {
+		if isPlayerAlive && playerOne.collision(enemies[j]) {
 			log.Println("Player Died")
 			isPlayerAlive = false
 		}
@@ -131,15 +131,15 @@ func update(screen *ebiten.Image) error {
 	draw(screen, background, 0, 0)
 
 	if isPlayerAlive {
-		draw(screen, playerOne.playerImage, playerOne.xPos, playerOne.yPos)
+		draw(screen, playerOne.playerImage, playerOne.hitbox.XPos, playerOne.hitbox.YPos)
 	}
 
 	for _, e := range enemies {
-		draw(screen, e.image, e.xPos, e.yPos)
+		draw(screen, e.image, e.hitbox.XPos, e.hitbox.YPos)
 	}
 
 	for _, a := range playerAttacks {
-		draw(screen, a.image, a.xPos, a.yPos)
+		draw(screen, a.image, a.hitbox.XPos, a.hitbox.YPos)
 	}
 
 	return nil
