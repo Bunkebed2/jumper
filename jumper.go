@@ -1,31 +1,41 @@
 package main
 
 import (
+	"bytes"
+	"fmt"
+	"image/color"
 	"log"
-	"math/rand/v2"
 
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
+	"github.com/bunke/jumper/enemy"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/examples/resources/fonts"
+	"github.com/hajimehoshi/ebiten/v2/text/v2"
 )
 
 // Create our empty vars
 var (
-	err             error
 	background      *ebiten.Image
 	spaceShip       *ebiten.Image
 	enemyShipSprite *ebiten.Image
 	playerOne       Player
-	enemies         []Enemy
+	enemies         []enemy.Enemy
 	playerAttacks   []Attack
 	isPlayerAlive   bool
+	mplusFaceSource *text.GoTextFaceSource
+	eg              *enemy.EnemyGenerator
 )
 
 const (
-	screenWidth, screenHeight = 640, 480
+	screenWidth, screenHeight = 1280, 720
 )
 
+type Game struct {
+	score int
+}
+
 func loadImage(imgPath string) *ebiten.Image {
-	image, _, err := ebitenutil.NewImageFromFile(imgPath, ebiten.FilterDefault)
+	image, _, err := ebitenutil.NewImageFromFile(imgPath)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -39,41 +49,43 @@ func draw(screen *ebiten.Image, image *ebiten.Image, xPos, yPos float64) {
 	screen.DrawImage(image, op)
 }
 
-func remove(s []Enemy, i int) []Enemy {
-	s[i] = s[len(s)-1]
-	return s[:len(s)-1]
-}
-
-// Run this code once at startup
 func init() {
-	background = loadImage("assets/Space_Background.png")
+	// Loading the font face source with the data from the font
+	ff, err := text.NewGoTextFaceSource(bytes.NewReader(fonts.MPlus1pRegular_ttf))
+	if err != nil {
+		log.Fatal("error loading font", err)
+	}
+
+	mplusFaceSource = ff
+
+	background = loadImage("assets/spacebackground.png")
 	spaceShip = loadImage("assets/spaceship.png")
-	enemyShipSprite = loadImage("assets/enemy_ship.png")
+	enemyShipSprite = loadImage("assets/enemyship.png")
 	missile := loadImage("assets/missile.png")
-	playerOne = *NewPlayer(spaceShip, missile, screenWidth/2.0, screenHeight/2.0, 4)
+	playerOne = *NewPlayer(spaceShip, missile, screenWidth/2.0, screenHeight/2.0, 6)
 	isPlayerAlive = true
 
-	enemies = make([]Enemy, 0)
-	enemies = append(enemies, *NewEnemy(enemyShipSprite, 0, 0, 2))
+	e1 := *enemy.NewEnemy(enemyShipSprite, 0, 0, 2)
+	e2 := *enemy.NewEnemy(loadImage("assets/enemyFighter.png"), 0, 0, 3)
+
+	enemies = make([]enemy.Enemy, 0)
+	enemies = append(enemies, e1)
+
+	eg = enemy.NewEnemyGenerator(e1, e2, e1)
 
 	playerAttacks = make([]Attack, 0)
 }
 
-func update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	if isPlayerAlive {
 		playerOne.movePlayer(screenWidth, screenHeight)
 		playerAttacks = playerOne.fireMissile(playerAttacks)
 	}
 
-	r := rand.IntN(200)
-	if r == 10 {
-		e := *NewEnemy(enemyShipSprite, 0, 0, 2)
-		e.xPos = float64(rand.IntN(screenWidth - e.Dx()))
-		enemies = append(enemies, e)
-	}
+	enemies = append(enemies, eg.GenerateEnemies(screenWidth)...)
 
 	for j, _ := range enemies {
-		enemies[j].move()
+		enemies[j].Move()
 	}
 
 	for k, _ := range playerAttacks {
@@ -82,12 +94,12 @@ func update(screen *ebiten.Image) error {
 
 	i := 0
 	for j, _ := range enemies {
-		if enemies[j].inBounds(screenWidth, screenHeight) {
+		if enemies[j].InBounds(screenWidth, screenHeight) {
 			enemies[i] = enemies[j]
 			i++
 		}
 
-		if isPlayerAlive && playerOne.intersects(enemies[j]) {
+		if isPlayerAlive && playerOne.collision(enemies[j]) {
 			log.Println("Player Died")
 			isPlayerAlive = false
 		}
@@ -113,6 +125,7 @@ func update(screen *ebiten.Image) error {
 				k++
 			} else {
 				attackHit = true
+				g.score++
 			}
 		}
 		enemies = enemies[:k]
@@ -124,29 +137,42 @@ func update(screen *ebiten.Image) error {
 	}
 	playerAttacks = playerAttacks[:i]
 
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
-
-	draw(screen, background, 0, 0)
-
-	if isPlayerAlive {
-		draw(screen, playerOne.playerImage, playerOne.xPos, playerOne.yPos)
-	}
-
-	for _, e := range enemies {
-		draw(screen, e.image, e.xPos, e.yPos)
-	}
-
-	for _, a := range playerAttacks {
-		draw(screen, a.image, a.xPos, a.yPos)
-	}
-
 	return nil
 }
 
+func (g *Game) DrawHUD(screen *ebiten.Image) {
+	op := &text.DrawOptions{}
+	op.GeoM.Translate(10, 10)
+	op.ColorScale.ScaleWithColor(color.White)
+	text.Draw(screen, fmt.Sprintf("Score: %d", g.score), &text.GoTextFace{Source: mplusFaceSource, Size: 24}, op)
+}
+
+func (g *Game) Draw(screen *ebiten.Image) {
+	draw(screen, background, 0, 0)
+
+	if isPlayerAlive {
+		draw(screen, playerOne.playerImage, playerOne.hitbox.XPos, playerOne.hitbox.YPos)
+	}
+
+	for _, e := range enemies {
+		draw(screen, e.Image, e.Hitbox.XPos, e.Hitbox.YPos)
+	}
+
+	for _, a := range playerAttacks {
+		draw(screen, a.image, a.hitbox.XPos, a.hitbox.YPos)
+	}
+
+	g.DrawHUD(screen)
+}
+
+func (g *Game) Layout(ow, oh int) (int, int) {
+	return ow, oh
+}
+
 func main() {
-	if err := ebiten.Run(update, screenWidth, screenHeight, 1, "JUMPER"); err != nil {
+	ebiten.SetWindowSize(screenWidth, screenHeight)
+	ebiten.SetWindowTitle("JUMPER")
+	if err := ebiten.RunGame(&Game{0}); err != nil {
 		log.Fatal(err)
 	}
 }
