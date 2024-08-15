@@ -6,7 +6,9 @@ import (
 	"image/color"
 	"log"
 
+	"github.com/bunke/jumper/attack"
 	"github.com/bunke/jumper/enemy"
+	"github.com/bunke/jumper/player"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/fonts"
@@ -18,9 +20,10 @@ var (
 	background      *ebiten.Image
 	spaceShip       *ebiten.Image
 	enemyShipSprite *ebiten.Image
-	playerOne       Player
+	playerOne       player.Player
 	enemies         []enemy.Enemy
-	playerAttacks   []Attack
+	playerAttacks   []attack.Attack
+	enemyAttacks    []attack.Attack
 	isPlayerAlive   bool
 	mplusFaceSource *text.GoTextFaceSource
 	eg              *enemy.EnemyGenerator
@@ -62,70 +65,60 @@ func init() {
 	spaceShip = loadImage("assets/spaceship.png")
 	enemyShipSprite = loadImage("assets/enemyship.png")
 	missile := loadImage("assets/missile.png")
-	playerOne = *NewPlayer(spaceShip, missile, screenWidth/2.0, screenHeight/2.0, 6)
+	playerOne = *player.NewPlayer(spaceShip, missile, screenWidth/2.0, screenHeight/2.0, 6)
 	isPlayerAlive = true
 
-	e1 := *enemy.NewEnemy(enemyShipSprite, 0, 0, 2)
-	e2 := *enemy.NewEnemy(loadImage("assets/enemyFighter.png"), 0, 0, 3)
+	e1 := enemy.NewBasicEnemy(enemyShipSprite, 0, 0, 2, 1)
+	e2 := enemy.NewBasicEnemy(loadImage("assets/enemyFighter.png"), 0, 0, 3, 2)
+	e3 := enemy.NewAdvancedEnemy(enemy.NewBasicEnemy(loadImage("assets/redwingFighter.png"), 0, 0, 1, 4), missile)
 
 	enemies = make([]enemy.Enemy, 0)
 	enemies = append(enemies, e1)
 
-	eg = enemy.NewEnemyGenerator(e1, e2, e1)
+	eg = enemy.NewEnemyGenerator(e1, e2, e3)
 
-	playerAttacks = make([]Attack, 0)
+	playerAttacks = make([]attack.Attack, 0)
+	enemyAttacks = make([]attack.Attack, 0)
 }
 
 func (g *Game) Update() error {
 	if isPlayerAlive {
-		playerOne.movePlayer(screenWidth, screenHeight)
-		playerAttacks = playerOne.fireMissile(playerAttacks)
+		playerOne.MovePlayer(screenWidth, screenHeight)
+		playerAttacks = playerOne.FireMissile(playerAttacks)
 	}
 
 	enemies = append(enemies, eg.GenerateEnemies(screenWidth)...)
 
 	for j, _ := range enemies {
 		enemies[j].Move()
+		enemyAttacks = enemies[j].Attack(enemyAttacks)
 	}
 
 	for k, _ := range playerAttacks {
-		playerAttacks[k].move()
+		playerAttacks[k].Move()
+	}
+
+	for k, _ := range enemyAttacks {
+		enemyAttacks[k].Move()
 	}
 
 	i := 0
-	for j, _ := range enemies {
-		if enemies[j].InBounds(screenWidth, screenHeight) {
-			enemies[i] = enemies[j]
-			i++
-		}
-
-		if isPlayerAlive && playerOne.collision(enemies[j]) {
-			log.Println("Player Died")
-			isPlayerAlive = false
-		}
-	}
-	enemies = enemies[:i]
-
-	i = 0
-	for j, _ := range playerAttacks {
-		if playerAttacks[j].inBounds(screenWidth, screenHeight) {
-			playerAttacks[i] = playerAttacks[j]
-			i++
-		}
-	}
-	playerAttacks = playerAttacks[:i]
-
-	i = 0
 	for j, _ := range playerAttacks {
 		attackHit := false
 		k := 0
 		for l, _ := range enemies {
-			if !playerAttacks[j].intersects(enemies[l]) {
+			if !playerAttacks[j].Intersects(enemies[l].Hitbox()) {
 				enemies[k] = enemies[l]
 				k++
 			} else {
 				attackHit = true
-				g.score++
+				enemies[l].SetHP(enemies[l].HP() - 1)
+				if enemies[l].HP() > 0 {
+					enemies[k] = enemies[l]
+					k++
+				} else {
+					g.score++
+				}
 			}
 		}
 		enemies = enemies[:k]
@@ -136,6 +129,43 @@ func (g *Game) Update() error {
 		}
 	}
 	playerAttacks = playerAttacks[:i]
+
+	i = 0
+	for j, _ := range enemies {
+		if enemies[j].InBounds(screenWidth, screenHeight) {
+			enemies[i] = enemies[j]
+			i++
+		}
+
+		if isPlayerAlive && playerOne.Collision(enemies[j].Hitbox()) {
+			log.Println("Player Died")
+			isPlayerAlive = false
+		}
+	}
+	enemies = enemies[:i]
+
+	i = 0
+	for j, _ := range playerAttacks {
+		if playerAttacks[j].InBounds(screenWidth, screenHeight) {
+			playerAttacks[i] = playerAttacks[j]
+			i++
+		}
+	}
+	playerAttacks = playerAttacks[:i]
+
+	i = 0
+	for j, _ := range enemyAttacks {
+		if enemyAttacks[j].InBounds(screenWidth, screenHeight) {
+			enemyAttacks[i] = enemyAttacks[j]
+			i++
+		}
+
+		if isPlayerAlive && enemyAttacks[j].Intersects(playerOne.Hitbox) {
+			log.Println("Player Died")
+			isPlayerAlive = false
+		}
+	}
+	enemyAttacks = enemyAttacks[:i]
 
 	return nil
 }
@@ -151,15 +181,19 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	draw(screen, background, 0, 0)
 
 	if isPlayerAlive {
-		draw(screen, playerOne.playerImage, playerOne.hitbox.XPos, playerOne.hitbox.YPos)
+		draw(screen, playerOne.PlayerImage, playerOne.Hitbox.XPos, playerOne.Hitbox.YPos)
 	}
 
 	for _, e := range enemies {
-		draw(screen, e.Image, e.Hitbox.XPos, e.Hitbox.YPos)
+		draw(screen, e.Image(), e.Hitbox().XPos, e.Hitbox().YPos)
+	}
+
+	for _, a := range enemyAttacks {
+		draw(screen, a.Image, a.Hitbox.XPos, a.Hitbox.YPos)
 	}
 
 	for _, a := range playerAttacks {
-		draw(screen, a.image, a.hitbox.XPos, a.hitbox.YPos)
+		draw(screen, a.Image, a.Hitbox.XPos, a.Hitbox.YPos)
 	}
 
 	g.DrawHUD(screen)
