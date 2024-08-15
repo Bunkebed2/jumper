@@ -65,13 +65,14 @@ func init() {
 	playerOne = *NewPlayer(spaceShip, missile, screenWidth/2.0, screenHeight/2.0, 6)
 	isPlayerAlive = true
 
-	e1 := *enemy.NewEnemy(enemyShipSprite, 0, 0, 2)
-	e2 := *enemy.NewEnemy(loadImage("assets/enemyFighter.png"), 0, 0, 3)
+	e1 := *enemy.NewEnemy(enemyShipSprite, 0, 0, 2, 1)
+	e2 := *enemy.NewEnemy(loadImage("assets/enemyFighter.png"), 0, 0, 3, 2)
+	e3 := *enemy.NewEnemy(loadImage("assets/redwingFighter.png"), 0, 0, 1, 4)
 
 	enemies = make([]enemy.Enemy, 0)
 	enemies = append(enemies, e1)
 
-	eg = enemy.NewEnemyGenerator(e1, e2, e1)
+	eg = enemy.NewEnemyGenerator(e1, e2, e3)
 
 	playerAttacks = make([]Attack, 0)
 }
@@ -125,7 +126,13 @@ func (g *Game) Update() error {
 				k++
 			} else {
 				attackHit = true
-				g.score++
+				enemies[l].HP--
+				if enemies[l].HP > 0 {
+					enemies[k] = enemies[l]
+					k++
+				} else {
+					g.score++
+				}
 			}
 		}
 		enemies = enemies[:k]

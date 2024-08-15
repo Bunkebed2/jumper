@@ -9,13 +9,14 @@ type Enemy struct {
 	Image  *ebiten.Image
 	Hitbox hitbox.Hitbox
 	speed  float64
+	HP     int
 }
 
-func NewEnemy(image *ebiten.Image, xPos, yPos, speed float64) *Enemy {
+func NewEnemy(image *ebiten.Image, xPos, yPos, speed float64, hp int) *Enemy {
 	hitbox := *hitbox.NewHitbox(xPos, yPos, image.Bounds())
 
 	enemy := &Enemy{
-		image, hitbox, speed,
+		image, hitbox, speed, hp,
 	}
 
 	return enemy
