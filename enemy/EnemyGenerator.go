@@ -1,14 +1,16 @@
 package enemy
 
-import "math/rand/v2"
+import (
+	"math/rand/v2"
+)
 
 type EnemyGenerator struct {
 	enemyT1 BasicEnemy
 	enemyT2 BasicEnemy
-	enemyT3 BasicEnemy
+	enemyT3 AdvancedEnemy
 }
 
-func NewEnemyGenerator(enemyT1, enemyT2, enemyT3 *BasicEnemy) *EnemyGenerator {
+func NewEnemyGenerator(enemyT1, enemyT2 *BasicEnemy, enemyT3 *AdvancedEnemy) *EnemyGenerator {
 	enemyGen := &EnemyGenerator{*enemyT1, *enemyT2, *enemyT3}
 	return enemyGen
 }
@@ -25,8 +27,9 @@ func (eg *EnemyGenerator) GenerateEnemies(screenWidth int) []Enemy {
 		e.hitbox.XPos = float64(rand.IntN(screenWidth - e.Dx()))
 		enemies = append(enemies, e)
 	} else if 12 <= r && r < 14 {
-		e := NewBasicEnemy(eg.enemyT3.Image(), 0, 0, eg.enemyT3.speed, eg.enemyT3.HP())
-		e.hitbox.XPos = float64(rand.IntN(screenWidth - e.Dx()))
+		e := NewAdvancedEnemy(NewBasicEnemy(eg.enemyT3.Image(), 0, 0, eg.enemyT3.base.speed, eg.enemyT3.HP()),
+			eg.enemyT3.AttackImage)
+		e.basicEnemy().hitbox.XPos = float64(rand.IntN(screenWidth - e.Dx()))
 		enemies = append(enemies, e)
 	}
 

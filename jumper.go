@@ -70,7 +70,7 @@ func init() {
 
 	e1 := enemy.NewBasicEnemy(enemyShipSprite, 0, 0, 2, 1)
 	e2 := enemy.NewBasicEnemy(loadImage("assets/enemyFighter.png"), 0, 0, 3, 2)
-	e3 := enemy.NewBasicEnemy(loadImage("assets/redwingFighter.png"), 0, 0, 1, 4)
+	e3 := enemy.NewAdvancedEnemy(enemy.NewBasicEnemy(loadImage("assets/redwingFighter.png"), 0, 0, 1, 4), missile)
 
 	enemies = make([]enemy.Enemy, 0)
 	enemies = append(enemies, e1)
@@ -98,30 +98,11 @@ func (g *Game) Update() error {
 		playerAttacks[k].Move()
 	}
 
+	for k, _ := range enemyAttacks {
+		enemyAttacks[k].Move()
+	}
+
 	i := 0
-	for j, _ := range enemies {
-		if enemies[j].InBounds(screenWidth, screenHeight) {
-			enemies[i] = enemies[j]
-			i++
-		}
-
-		if isPlayerAlive && playerOne.Collision(enemies[j].Hitbox()) {
-			log.Println("Player Died")
-			isPlayerAlive = false
-		}
-	}
-	enemies = enemies[:i]
-
-	i = 0
-	for j, _ := range playerAttacks {
-		if playerAttacks[j].InBounds(screenWidth, screenHeight) {
-			playerAttacks[i] = playerAttacks[j]
-			i++
-		}
-	}
-	playerAttacks = playerAttacks[:i]
-
-	i = 0
 	for j, _ := range playerAttacks {
 		attackHit := false
 		k := 0
@@ -149,6 +130,43 @@ func (g *Game) Update() error {
 	}
 	playerAttacks = playerAttacks[:i]
 
+	i = 0
+	for j, _ := range enemies {
+		if enemies[j].InBounds(screenWidth, screenHeight) {
+			enemies[i] = enemies[j]
+			i++
+		}
+
+		if isPlayerAlive && playerOne.Collision(enemies[j].Hitbox()) {
+			log.Println("Player Died")
+			isPlayerAlive = false
+		}
+	}
+	enemies = enemies[:i]
+
+	i = 0
+	for j, _ := range playerAttacks {
+		if playerAttacks[j].InBounds(screenWidth, screenHeight) {
+			playerAttacks[i] = playerAttacks[j]
+			i++
+		}
+	}
+	playerAttacks = playerAttacks[:i]
+
+	i = 0
+	for j, _ := range enemyAttacks {
+		if enemyAttacks[j].InBounds(screenWidth, screenHeight) {
+			enemyAttacks[i] = enemyAttacks[j]
+			i++
+		}
+
+		if isPlayerAlive && enemyAttacks[j].Intersects(playerOne.Hitbox) {
+			log.Println("Player Died")
+			isPlayerAlive = false
+		}
+	}
+	enemyAttacks = enemyAttacks[:i]
+
 	return nil
 }
 
@@ -168,6 +186,10 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	for _, e := range enemies {
 		draw(screen, e.Image(), e.Hitbox().XPos, e.Hitbox().YPos)
+	}
+
+	for _, a := range enemyAttacks {
+		draw(screen, a.Image, a.Hitbox.XPos, a.Hitbox.YPos)
 	}
 
 	for _, a := range playerAttacks {

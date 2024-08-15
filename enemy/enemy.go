@@ -10,7 +10,7 @@ type Enemy interface {
 	Move()
 	Attack(attacks []attack.Attack) []attack.Attack
 	InBounds(xBound, yBound float64) bool
-	Hitbox() hitbox.Hitbox
+	Hitbox() *hitbox.Hitbox
 	Image() *ebiten.Image
 	Dx() int
 	Dy() int
@@ -20,13 +20,13 @@ type Enemy interface {
 
 type BasicEnemy struct {
 	image  *ebiten.Image
-	hitbox hitbox.Hitbox
+	hitbox *hitbox.Hitbox
 	speed  float64
 	hp     int
 }
 
 func NewBasicEnemy(image *ebiten.Image, xPos, yPos, speed float64, hp int) *BasicEnemy {
-	hitbox := *hitbox.NewHitbox(xPos, yPos, image.Bounds())
+	hitbox := hitbox.NewHitbox(xPos, yPos, image.Bounds())
 
 	enemy := &BasicEnemy{
 		image, hitbox, speed, hp,
@@ -62,7 +62,7 @@ func (e *BasicEnemy) Dy() int {
 	return e.hitbox.Dy()
 }
 
-func (e *BasicEnemy) Hitbox() hitbox.Hitbox {
+func (e *BasicEnemy) Hitbox() *hitbox.Hitbox {
 	return e.hitbox
 }
 

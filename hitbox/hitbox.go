@@ -12,7 +12,7 @@ func NewHitbox(xPos, yPos float64, box image.Rectangle) *Hitbox {
 	return hitbox
 }
 
-func (h Hitbox) Intersects(h2 Hitbox) bool {
+func (h Hitbox) Intersects(h2 *Hitbox) bool {
 	playerRect := h.box
 	enemyRect := h2.box
 

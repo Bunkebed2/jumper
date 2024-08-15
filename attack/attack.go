@@ -45,6 +45,6 @@ func (a *Attack) Dy() int {
 	return a.Image.Bounds().Dy()
 }
 
-func (a *Attack) Intersects(hb hitbox.Hitbox) bool {
+func (a *Attack) Intersects(hb *hitbox.Hitbox) bool {
 	return a.Hitbox.Intersects(hb)
 }

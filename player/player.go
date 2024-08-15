@@ -1,8 +1,6 @@
 package player
 
 import (
-	"log"
-
 	"github.com/bunke/jumper/attack"
 	"github.com/bunke/jumper/hitbox"
 	"github.com/hajimehoshi/ebiten/v2"
@@ -11,7 +9,7 @@ import (
 type Player struct {
 	PlayerImage  *ebiten.Image
 	missileImage *ebiten.Image
-	Hitbox       hitbox.Hitbox
+	Hitbox       *hitbox.Hitbox
 	speed        float64
 	cooldown     int
 }
@@ -21,7 +19,7 @@ const (
 )
 
 func NewPlayer(playerImage, missileImage *ebiten.Image, xPos, yPos, speed float64) *Player {
-	hitbox := *hitbox.NewHitbox(xPos, yPos, playerImage.Bounds())
+	hitbox := hitbox.NewHitbox(xPos, yPos, playerImage.Bounds())
 
 	player := &Player{
 		playerImage, missileImage, hitbox, speed, 0,
@@ -33,10 +31,7 @@ func NewPlayer(playerImage, missileImage *ebiten.Image, xPos, yPos, speed float6
 func (p *Player) FireMissile(playerAttacks []attack.Attack) []attack.Attack {
 	if p.cooldown > 0 {
 		p.cooldown--
-	}
-
-	if p.cooldown == 0 && ebiten.IsKeyPressed(ebiten.KeyE) {
-		log.Println(float64(p.PlayerImage.Bounds().Dx()) / 2.0)
+	} else if ebiten.IsKeyPressed(ebiten.KeyE) {
 		p.cooldown = cooldownTimerLength
 		playerAttacks = append(playerAttacks, *attack.NewAttack(p.missileImage,
 			p.Hitbox.XPos+(float64(p.PlayerImage.Bounds().Dx())/2.0)+float64(p.missileImage.Bounds().Dx()),
@@ -89,6 +84,6 @@ func (p *Player) MovePlayer(screenWidth float64, screenHeight float64) {
 	}
 }
 
-func (p *Player) Collision(hb hitbox.Hitbox) bool {
+func (p *Player) Collision(hb *hitbox.Hitbox) bool {
 	return p.Hitbox.Intersects(hb)
 }
